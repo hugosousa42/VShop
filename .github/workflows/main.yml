@@ -59,6 +59,7 @@ jobs:
       - name: Clonar o repositório privado e enviar nota
         env:
           PRIVATE_REPO_URL: ${{ secrets.PRIVATE_REPO_URL }}
+          GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           NOTE_FILE="${{ steps.prepare_note.outputs.note_file }}"
           REPO_NAME="${{ steps.prepare_note.outputs.repo_name }}"
@@ -68,8 +69,15 @@ jobs:
           TEMP_DIR="temp_private_repo"
           mkdir -p "$TEMP_DIR"
           
+          # Extrair o nome de usuário ou organização e o nome do repositório da URL privada
+          # Isso pressupõe que a URL está no formato github.com/usuario/repo
+          REPO_URL="$PRIVATE_REPO_URL"
+          
           # Clonar o repositório privado no diretório temporário
-          if ! git clone https://x-access-token:${{ secrets.GH_PAT }}@$PRIVATE_REPO_URL.git "$TEMP_DIR"; then
+          echo "Clonando repositório privado..."
+          git clone "https://x-access-token:${GH_PAT}@github.com/${REPO_URL}.git" "$TEMP_DIR"
+          
+          if [ $? -ne 0 ]; then
             echo "Falha ao clonar o repositório privado."
             exit 1
           fi

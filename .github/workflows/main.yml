@@ -69,13 +69,13 @@ jobs:
           TEMP_DIR="temp_private_repo"
           mkdir -p "$TEMP_DIR"
           
-          # Extrair o nome de usuário ou organização e o nome do repositório da URL privada
-          # Isso pressupõe que a URL está no formato github.com/usuario/repo
-          REPO_URL="$PRIVATE_REPO_URL"
-          
-          # Clonar o repositório privado no diretório temporário
+          # Clonar o repositório privado diretamente usando o token
           echo "Clonando repositório privado..."
-          git clone "https://x-access-token:${GH_PAT}@github.com/${REPO_URL}.git" "$TEMP_DIR"
+          
+          # Substituir https:// por https://{token}@
+          REPO_CLONE_URL=$(echo "$PRIVATE_REPO_URL" | sed "s|https://|https://${GH_PAT}@|g" | tr -d '\n\r')
+          
+          git clone "$REPO_CLONE_URL" "$TEMP_DIR"
           
           if [ $? -ne 0 ]; then
             echo "Falha ao clonar o repositório privado."

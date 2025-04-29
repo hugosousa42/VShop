@@ -63,18 +63,27 @@ jobs:
           NOTE_FILE="${{ steps.prepare_note.outputs.note_file }}"
           REPO_NAME="${{ steps.prepare_note.outputs.repo_name }}"
           LOG_FILE="${REPO_NAME} logs.md"
-
-          if ! git clone https://x-access-token:${{ secrets.GH_PAT }}@$PRIVATE_REPO_URL.git; then
+          
+          # Criar um diretório temporário para clonar o repositório privado
+          TEMP_DIR="temp_private_repo"
+          mkdir -p "$TEMP_DIR"
+          
+          # Clonar o repositório privado no diretório temporário
+          if ! git clone https://x-access-token:${{ secrets.GH_PAT }}@$PRIVATE_REPO_URL.git "$TEMP_DIR"; then
             echo "Falha ao clonar o repositório privado."
             exit 1
           fi
 
-          PRIVATE_REPO_DIR=$(basename $PRIVATE_REPO_URL)
-          cd "$PRIVATE_REPO_DIR"
+          # Mover para o diretório do repositório privado
+          cd "$TEMP_DIR"
 
+          # Criar diretório Projects se não existir
           mkdir -p Projects
+          
+          # Mover o arquivo de nota para o diretório Projects
           mv "../${NOTE_FILE}" ./Projects/
 
+          # Atualizar ou criar o arquivo de log
           if [ -f "Projects/$LOG_FILE" ]; then
             TEMP_FILE="temp_log.md"
             echo "# ${REPO_NAME} - Log de Commits" > "$TEMP_FILE"
@@ -89,20 +98,26 @@ jobs:
             echo "- [[Projects/${NOTE_FILE}]] - $(date +'%Y-%m-%d %H:%M:%S') - ${{ env.commit_message }}" >> "Projects/$LOG_FILE"
           fi
 
+          # Configurar git user
           git config --global user.email "bot@github.com"
           git config --global user.name "GitHub Actions Bot"
+          
+          # Adicionar alterações
           git add .
 
+          # Verificar se há alterações para commit
           if git diff --staged --quiet; then
             echo "Nenhuma mudança detectada. Pulando commit."
             exit 0
           fi
 
+          # Fazer commit
           if ! git commit -m "${{ env.commit_message }}"; then
             echo "Falha ao fazer commit."
             exit 1
           fi
 
+          # Fazer push
           if ! git push; then
             echo "Falha ao fazer push."
             exit 1
@@ -110,4 +125,4 @@ jobs:
 
       - name: Limpar ambiente
         run: |
-          rm -rf $(basename ${{ secrets.PRIVATE_REPO_URL }})
+          rm -rf temp_private_repo
